@@ -28,6 +28,8 @@ import {
   LibConfig,
   LibContext,
   LibContextProps,
+  NavigationContext,
+  NavigationContextProps,
   ScriptRunContext,
   ScriptRunContextProps,
   ScriptRunState,
@@ -41,11 +43,6 @@ import { IAppPage, IGitInfo, Logo, PageConfig } from "@streamlit/protobuf"
 // Type for AppContext props
 type AppContextValues = {
   initialSidebarState: PageConfig.SidebarState
-  pageLinkBaseUrl: string
-  currentPageScriptHash: string
-  onPageChange: (pageScriptHash: string) => void
-  navSections: string[]
-  appPages: IAppPage[]
   appLogo: Logo | null
   sidebarChevronDownshift: number
   expandSidebarNav: boolean
@@ -59,11 +56,18 @@ type AppContextValues = {
 type LibContextValues = {
   isFullScreen: boolean
   setFullScreen: (value: boolean) => void
-  onPageChange: (pageScriptHash: string) => void
-  currentPageScriptHash: string
   libConfig: LibConfig
   locale: typeof window.navigator.language
   componentRegistry: ComponentRegistry
+}
+
+// Type for NavigationContext props
+type NavigationContextValues = {
+  pageLinkBaseUrl: string
+  currentPageScriptHash: string
+  onPageChange: (pageScriptHash: string) => void
+  navSections: string[]
+  appPages: IAppPage[]
 }
 
 // Type for ThemeContext props
@@ -87,6 +91,7 @@ type FormsContextValues = {
 export type StreamlitContextProviderProps = PropsWithChildren<
   AppContextValues &
     LibContextValues &
+    NavigationContextValues &
     ThemeContextValues &
     ScriptRunContextValues &
     FormsContextValues
@@ -99,9 +104,6 @@ export type StreamlitContextProviderProps = PropsWithChildren<
 const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
   // AppContext
   initialSidebarState,
-  pageLinkBaseUrl,
-  navSections,
-  appPages,
   appLogo,
   sidebarChevronDownshift,
   expandSidebarNav,
@@ -115,6 +117,12 @@ const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
   libConfig,
   locale,
   componentRegistry,
+  // NavigationContext
+  pageLinkBaseUrl,
+  currentPageScriptHash,
+  onPageChange,
+  navSections,
+  appPages,
   // ThemeContext
   activeTheme,
   setTheme,
@@ -123,9 +131,6 @@ const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
   scriptRunState,
   scriptRunId,
   fragmentIdsThisRun,
-  // Used in both AppContext and LibContext
-  currentPageScriptHash,
-  onPageChange,
   // FormsContext
   formsData,
   // Children passed through
@@ -135,11 +140,6 @@ const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
   const appContextProps = useMemo<AppContextProps>(
     () => ({
       initialSidebarState,
-      pageLinkBaseUrl,
-      currentPageScriptHash,
-      onPageChange,
-      navSections,
-      appPages,
       appLogo,
       sidebarChevronDownshift,
       expandSidebarNav,
@@ -150,11 +150,6 @@ const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
     }),
     [
       initialSidebarState,
-      pageLinkBaseUrl,
-      currentPageScriptHash,
-      onPageChange,
-      navSections,
-      appPages,
       appLogo,
       sidebarChevronDownshift,
       expandSidebarNav,
@@ -170,20 +165,28 @@ const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
     () => ({
       isFullScreen,
       setFullScreen,
-      onPageChange,
-      currentPageScriptHash,
       libConfig,
       locale,
       componentRegistry,
     }),
-    [
-      isFullScreen,
-      setFullScreen,
-      onPageChange,
+    [isFullScreen, setFullScreen, libConfig, locale, componentRegistry]
+  )
+
+  // Memoized object for NavigationContext values
+  const navigationContextProps = useMemo<NavigationContextProps>(
+    () => ({
+      pageLinkBaseUrl,
       currentPageScriptHash,
-      libConfig,
-      locale,
-      componentRegistry,
+      onPageChange,
+      navSections,
+      appPages,
+    }),
+    [
+      pageLinkBaseUrl,
+      currentPageScriptHash,
+      onPageChange,
+      navSections,
+      appPages,
     ]
   )
 
@@ -215,25 +218,28 @@ const StreamlitContextProvider: React.FC<StreamlitContextProviderProps> = ({
 
   /**
    * Context Provider Ordering (Outer → Inner):
-   * 1. AppContext - Changes least frequently (app-level config)
-   * 2. LibContext - Changes moderately (fullscreen, locale, etc.)
+   * 1. AppContext - Changes least frequently (app-level config, sidebar state)
+   * 2. LibContext - Changes infrequently (fullscreen, locale, library config)
    * 3. ThemeContext - Changes when user switches theme (infrequent, user-initiated)
-   * 4. FormsContext - Changes when forms are modified (moderate frequency)
-   * 5. ScriptRunContext - Changes most frequently (every script run)
+   * 4. NavigationContext - Changes on page navigation (moderate frequency, user-initiated)
+   * 5. FormsContext - Changes when forms are modified (moderate to high frequency)
+   * 6. ScriptRunContext - Changes most frequently (every script run)
    *
    * Performance: More frequently changing contexts are innermost to minimize
    * cascading re-renders. When ScriptRunContext changes (every script run),
-   * only its consumers re-render, not FormsContext or ThemeContext consumers.
+   * only its consumers re-render, not FormsContext, NavigationContext, or ThemeContext consumers.
    */
   return (
     <AppContext.Provider value={appContextProps}>
       <LibContext.Provider value={libContextProps}>
         <ThemeContext.Provider value={themeContextProps}>
-          <FormsContext.Provider value={formsContextProps}>
-            <ScriptRunContext.Provider value={scriptRunContextProps}>
-              {children}
-            </ScriptRunContext.Provider>
-          </FormsContext.Provider>
+          <NavigationContext.Provider value={navigationContextProps}>
+            <FormsContext.Provider value={formsContextProps}>
+              <ScriptRunContext.Provider value={scriptRunContextProps}>
+                {children}
+              </ScriptRunContext.Provider>
+            </FormsContext.Provider>
+          </NavigationContext.Provider>
         </ThemeContext.Provider>
       </LibContext.Provider>
     </AppContext.Provider>
