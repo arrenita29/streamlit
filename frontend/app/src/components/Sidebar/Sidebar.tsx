@@ -34,7 +34,6 @@ import {
   shouldShowNavigation,
   SidebarNav,
 } from "@streamlit/app/src/components/Navigation"
-import { useAppContext } from "@streamlit/app/src/components/StreamlitContextProvider"
 import { StreamlitEndpoints } from "@streamlit/connection"
 import {
   BaseButton,
@@ -45,9 +44,9 @@ import {
   useExecuteWhenChanged,
   useNavigationContext,
   useScrollbarGutterSize,
+  useSidebarConfigContext,
   useWindowDimensionsContext,
 } from "@streamlit/lib"
-import { Logo } from "@streamlit/protobuf"
 import { localStorageAvailable } from "@streamlit/utils"
 
 import {
@@ -65,7 +64,6 @@ export interface SidebarProps {
   endpoints: StreamlitEndpoints
   children?: ReactElement
   hasElements: boolean
-  appLogo: Logo | null
   isCollapsed: boolean
   onToggleCollapse: (collapsed: boolean, shouldPersist?: boolean) => void
 }
@@ -78,7 +76,6 @@ function calculateMaxBreakpoint(value: string): number {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  appLogo,
   endpoints,
   children,
   hasElements,
@@ -88,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const theme = useEmotionTheme()
   const mediumBreakpointPx = calculateMaxBreakpoint(theme.breakpoints.md)
   const { innerWidth } = useWindowDimensionsContext()
-  const { hideSidebarNav } = useAppContext()
+  const { hideSidebarNav, appLogo } = useSidebarConfigContext()
   const { appPages, navSections } = useNavigationContext()
   const scrollbarGutterSize = useScrollbarGutterSize()
 

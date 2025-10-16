@@ -33,6 +33,7 @@ import {
   mockTheme,
   NavigationContextProps,
   render,
+  SidebarConfigContextProps,
   ThemeContext,
   WidgetStateManager,
 } from "@streamlit/lib"
@@ -53,14 +54,22 @@ function getAppContextOutput(
   context: Partial<AppContextProps>
 ): AppContextProps {
   return {
+    widgetsDisabled: false,
+    gitInfo: null,
+    showToolbar: true,
+    ...context,
+  }
+}
+
+function getSidebarConfigContextOutput(
+  context: Partial<SidebarConfigContextProps>
+): SidebarConfigContextProps {
+  return {
     initialSidebarState: PageConfig.SidebarState.AUTO,
     appLogo: null,
     sidebarChevronDownshift: 0,
     expandSidebarNav: false,
     hideSidebarNav: false,
-    widgetsDisabled: false,
-    gitInfo: null,
-    showToolbar: true,
     ...context,
   }
 }
@@ -81,10 +90,15 @@ function getNavigationContextOutput(
 // Helper to setup context mocks for tests
 function setupContextMocks(options?: {
   appContext?: Partial<AppContextProps>
+  sidebarConfigContext?: Partial<SidebarConfigContextProps>
   navigationContext?: Partial<NavigationContextProps>
 }): void {
   vi.spyOn(StreamlitContextProviderModule, "useAppContext").mockImplementation(
     () => getAppContextOutput(options?.appContext || {})
+  )
+
+  vi.spyOn(LibModule, "useSidebarConfigContext").mockImplementation(() =>
+    getSidebarConfigContextOutput(options?.sidebarConfigContext || {})
   )
 
   vi.spyOn(LibModule, "useNavigationContext").mockImplementation(() =>
@@ -127,7 +141,6 @@ function getProps(props: Partial<AppViewProps> = {}): AppViewProps {
       formsWithPendingRequestsChanged: () => {},
       requestFileURLs: vi.fn(),
     }),
-    appLogo: null,
     wideMode: false,
     embedded: false,
     showPadding: false,
@@ -224,7 +237,7 @@ describe("AppView element", () => {
 
   it("does not render a sidebar when there are no elements, multiple pages, and hideSidebarNav is true", () => {
     setupContextMocks({
-      appContext: { hideSidebarNav: true },
+      sidebarConfigContext: { hideSidebarNav: true },
       navigationContext: {
         appPages: [
           { pageName: "streamlit_app", pageScriptHash: "page_hash" },
@@ -292,7 +305,7 @@ describe("AppView element", () => {
 
   it("does not render the sidebar if there are no elements, multiple pages but hideSidebarNav is true", () => {
     setupContextMocks({
-      appContext: { hideSidebarNav: true },
+      sidebarConfigContext: { hideSidebarNav: true },
       navigationContext: {
         appPages: [
           { pageName: "streamlit_app", pageScriptHash: "page_hash" },
@@ -496,12 +509,15 @@ describe("AppView element", () => {
             image: "https://example.com/logo.png",
           })
 
+          setupContextMocks({
+            sidebarConfigContext: { appLogo: logo },
+          })
+
           render(
             <AppView
               {...getProps({
                 embedded: true,
                 showPadding: true,
-                appLogo: logo,
                 navigationPosition: Navigation.Position.TOP,
               })}
             />
@@ -540,21 +556,20 @@ describe("AppView element", () => {
         })
 
         it("uses 6rem top padding when showToolbar=true regardless of header content", () => {
-          vi.spyOn(
-            StreamlitContextProviderModule,
-            "useAppContext"
-          ).mockReturnValue(getAppContextOutput({ showToolbar: true }))
-
           // Create elements that would trigger hasHeader=true
           const logo = LogoProto.create({
             image: "https://example.com/logo.png",
+          })
+
+          setupContextMocks({
+            appContext: { showToolbar: true },
+            sidebarConfigContext: { appLogo: logo },
           })
 
           render(
             <AppView
               {...getProps({
                 embedded: true,
-                appLogo: logo,
                 navigationPosition: Navigation.Position.TOP,
               })}
             />
@@ -594,7 +609,6 @@ describe("AppView element", () => {
               {...getProps({
                 embedded: true,
                 showPadding: false,
-                appLogo: null, // Single page, no nav
                 navigationPosition: Navigation.Position.SIDEBAR,
               })}
             />
@@ -610,12 +624,16 @@ describe("AppView element", () => {
             image: "https://example.com/logo.png",
           })
 
+          setupContextMocks({
+            appContext: { showToolbar: false },
+            sidebarConfigContext: { appLogo: logo },
+          })
+
           render(
             <AppView
               {...getProps({
                 embedded: true,
                 showPadding: false,
-                appLogo: logo,
               })}
             />
           )
@@ -643,7 +661,6 @@ describe("AppView element", () => {
               {...getProps({
                 embedded: true,
                 showPadding: false,
-                appLogo: null,
                 navigationPosition: Navigation.Position.TOP,
               })}
             />
@@ -675,15 +692,14 @@ describe("AppView element", () => {
           )
 
           // Mock collapsed sidebar state to trigger expand button
-          vi.spyOn(
-            StreamlitContextProviderModule,
-            "useAppContext"
-          ).mockReturnValue(
-            getAppContextOutput({
+          setupContextMocks({
+            appContext: {
               showToolbar: false,
+            },
+            sidebarConfigContext: {
               initialSidebarState: PageConfig.SidebarState.COLLAPSED,
-            })
-          )
+            },
+          })
 
           const props = getProps({
             elements: new AppRoot(
@@ -732,7 +748,6 @@ describe("AppView element", () => {
             ),
             embedded: true,
             showPadding: false,
-            appLogo: null, // No header content, only sidebar
           })
 
           render(<AppView {...props} />)
@@ -749,12 +764,15 @@ describe("AppView element", () => {
           image: "https://example.com/logo.png",
         })
 
+        setupContextMocks({
+          sidebarConfigContext: { appLogo: logo },
+        })
+
         render(
           <AppView
             {...getProps({
               embedded: true,
               showPadding: true,
-              appLogo: logo,
             })}
           />
         )
@@ -764,13 +782,13 @@ describe("AppView element", () => {
       })
 
       it("prioritizes showToolbar over header content", () => {
-        vi.spyOn(
-          StreamlitContextProviderModule,
-          "useAppContext"
-        ).mockReturnValue(getAppContextOutput({ showToolbar: true }))
-
         const logo = LogoProto.create({
           image: "https://example.com/logo.png",
+        })
+
+        setupContextMocks({
+          appContext: { showToolbar: true },
+          sidebarConfigContext: { appLogo: logo },
         })
 
         render(
@@ -778,7 +796,6 @@ describe("AppView element", () => {
             {...getProps({
               embedded: true,
               showPadding: false,
-              appLogo: logo,
             })}
           />
         )
@@ -820,8 +837,11 @@ describe("AppView element", () => {
     })
 
     it("uses iconImage if provided", () => {
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: fullAppLogo },
+      })
       const sourceSpy = vi.spyOn(mockEndpointProp, "buildMediaURL")
-      render(<AppView {...getProps({ appLogo: fullAppLogo })} />)
+      render(<AppView {...getProps({})} />)
       const collapsedLogo = screen.getByTestId("stHeaderLogo")
       expect(collapsedLogo).toBeInTheDocument()
       expect(sourceSpy).toHaveBeenCalledWith(
@@ -831,8 +851,11 @@ describe("AppView element", () => {
     })
 
     it("defaults to image if no iconImage", () => {
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: imageOnly },
+      })
       const sourceSpy = vi.spyOn(mockEndpointProp, "buildMediaURL")
-      render(<AppView {...getProps({ appLogo: imageOnly })} />)
+      render(<AppView {...getProps({})} />)
 
       const collapsedLogo = screen.getByTestId("stHeaderLogo")
       expect(collapsedLogo).toBeInTheDocument()
@@ -842,7 +865,10 @@ describe("AppView element", () => {
     })
 
     it("default no link with image size medium", () => {
-      render(<AppView {...getProps({ appLogo: imageOnly })} />)
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: imageOnly },
+      })
+      render(<AppView {...getProps({})} />)
       expect(screen.queryByTestId("stLogoLink")).not.toBeInTheDocument()
       expect(screen.getByTestId("stHeaderLogo")).toHaveStyle({
         height: "1.5rem",
@@ -850,7 +876,10 @@ describe("AppView element", () => {
     })
 
     it("link with image if provided", () => {
-      render(<AppView {...getProps({ appLogo: imageWithLink })} />)
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: imageWithLink },
+      })
+      render(<AppView {...getProps({})} />)
       expect(screen.getByTestId("stLogoLink")).toHaveAttribute(
         "href",
         "www.example.com"
@@ -858,14 +887,20 @@ describe("AppView element", () => {
     })
 
     it("renders logo - large size when specified", () => {
-      render(<AppView {...getProps({ appLogo: imageWithSize })} />)
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: imageWithSize },
+      })
+      render(<AppView {...getProps({})} />)
       expect(screen.getByTestId("stHeaderLogo")).toHaveStyle({
         height: "2rem",
       })
     })
 
     it("sends an CLIENT_ERROR message when the logo source fails to load", () => {
-      const props = getProps({ appLogo: imageOnly })
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: imageOnly },
+      })
+      const props = getProps({})
       render(<AppView {...props} />)
       const logoElement = screen.getByTestId("stHeaderLogo")
       expect(logoElement).toBeInTheDocument()
@@ -1076,7 +1111,6 @@ describe("AppView element", () => {
       render(
         <AppView
           {...getProps({
-            appLogo: null, // Single page, no nav
             navigationPosition: Navigation.Position.SIDEBAR,
           })}
         />
@@ -1094,7 +1128,11 @@ describe("AppView element", () => {
         image: "https://example.com/logo.png",
       })
 
-      render(<AppView {...getProps({ appLogo: logo })} />)
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: logo },
+      })
+
+      render(<AppView {...getProps({})} />)
 
       const header = screen.getByTestId("stHeader")
       expect(header).toBeInTheDocument()
@@ -1127,19 +1165,19 @@ describe("AppView element", () => {
     })
 
     it("header shows logo and sidebar button in embed mode", () => {
-      // Mock embed mode (showToolbar = false)
-      vi.spyOn(
-        StreamlitContextProviderModule,
-        "useAppContext"
-      ).mockReturnValue(
-        getAppContextOutput({
-          showToolbar: false, // This simulates embed=true without show_toolbar
-          initialSidebarState: PageConfig.SidebarState.COLLAPSED, // Ensure sidebar starts collapsed
-        })
-      )
-
       const logo = LogoProto.create({
         image: "https://example.com/logo.png",
+      })
+
+      // Mock embed mode (showToolbar = false)
+      setupContextMocks({
+        appContext: {
+          showToolbar: false, // This simulates embed=true without show_toolbar
+        },
+        sidebarConfigContext: {
+          initialSidebarState: PageConfig.SidebarState.COLLAPSED, // Ensure sidebar starts collapsed
+          appLogo: logo,
+        },
       })
 
       const sidebarElement = new ElementNode(
@@ -1166,7 +1204,6 @@ describe("AppView element", () => {
           FAKE_SCRIPT_HASH,
           new BlockNode(FAKE_SCRIPT_HASH, [empty, sidebar, empty, empty])
         ),
-        appLogo: logo,
         embedded: true,
       })
 
@@ -1271,14 +1308,11 @@ describe("AppView element", () => {
   describe("sidebar flicker prevention", () => {
     it("does not render sidebar when initialSidebarState is AUTO on initial render", () => {
       // Mock the context with AUTO state
-      vi.spyOn(
-        StreamlitContextProviderModule,
-        "useAppContext"
-      ).mockReturnValue(
-        getAppContextOutput({
+      setupContextMocks({
+        sidebarConfigContext: {
           initialSidebarState: PageConfig.SidebarState.AUTO,
-        })
-      )
+        },
+      })
 
       const sidebarElement = new ElementNode(
         makeElementWithInfoText("sidebar content"),
@@ -1314,14 +1348,11 @@ describe("AppView element", () => {
       expect(sidebarDOMElement).toHaveAttribute("aria-expanded", "true")
 
       // Now simulate receiving page config with collapsed state
-      vi.spyOn(
-        StreamlitContextProviderModule,
-        "useAppContext"
-      ).mockReturnValue(
-        getAppContextOutput({
+      setupContextMocks({
+        sidebarConfigContext: {
           initialSidebarState: PageConfig.SidebarState.COLLAPSED,
-        })
-      )
+        },
+      })
 
       rerender(<AppView {...props} />)
 
@@ -1332,14 +1363,11 @@ describe("AppView element", () => {
     })
 
     it("renders sidebar immediately when initialSidebarState is COLLAPSED", () => {
-      vi.spyOn(
-        StreamlitContextProviderModule,
-        "useAppContext"
-      ).mockReturnValue(
-        getAppContextOutput({
+      setupContextMocks({
+        sidebarConfigContext: {
           initialSidebarState: PageConfig.SidebarState.COLLAPSED,
-        })
-      )
+        },
+      })
 
       const sidebarElement = new ElementNode(
         makeElementWithInfoText("sidebar content"),
@@ -1376,14 +1404,11 @@ describe("AppView element", () => {
     })
 
     it("renders sidebar immediately when initialSidebarState is EXPANDED", () => {
-      vi.spyOn(
-        StreamlitContextProviderModule,
-        "useAppContext"
-      ).mockReturnValue(
-        getAppContextOutput({
+      setupContextMocks({
+        sidebarConfigContext: {
           initialSidebarState: PageConfig.SidebarState.EXPANDED,
-        })
-      )
+        },
+      })
 
       const sidebarElement = new ElementNode(
         makeElementWithInfoText("sidebar content"),
@@ -1421,7 +1446,7 @@ describe("AppView element", () => {
 
     it("shows sidebar when multiple pages exist even with AUTO state", () => {
       setupContextMocks({
-        appContext: {
+        sidebarConfigContext: {
           initialSidebarState: PageConfig.SidebarState.AUTO,
         },
         navigationContext: {
@@ -1445,14 +1470,11 @@ describe("AppView element", () => {
     })
 
     it("sidebar shows after first script run when no page config is set", () => {
-      vi.spyOn(
-        StreamlitContextProviderModule,
-        "useAppContext"
-      ).mockReturnValue(
-        getAppContextOutput({
+      setupContextMocks({
+        sidebarConfigContext: {
           initialSidebarState: PageConfig.SidebarState.AUTO,
-        })
-      )
+        },
+      })
 
       const sidebarElement = new ElementNode(
         makeElementWithInfoText("sidebar content"),
@@ -1543,15 +1565,11 @@ describe("AppView element", () => {
     })
 
     const mockSidebarContext = (
-      initialSidebarState: PageConfig.SidebarState,
-      pageLinkBaseUrl = ""
+      initialSidebarState: PageConfig.SidebarState
     ): void => {
       setupContextMocks({
-        appContext: {
+        sidebarConfigContext: {
           initialSidebarState,
-        },
-        navigationContext: {
-          pageLinkBaseUrl,
         },
       })
     }

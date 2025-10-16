@@ -26,9 +26,12 @@ import React, {
 
 import { getLogger } from "loglevel"
 
-import { useAppContext } from "@streamlit/app/src/components/StreamlitContextProvider"
 import { StreamlitEndpoints } from "@streamlit/connection"
-import { isMobile, useNavigationContext } from "@streamlit/lib"
+import {
+  isMobile,
+  useNavigationContext,
+  useSidebarConfigContext,
+} from "@streamlit/lib"
 import { IAppPage } from "@streamlit/protobuf"
 import { localStorageAvailable } from "@streamlit/utils"
 
@@ -141,7 +144,7 @@ const SidebarNav = ({
   hasSidebarElements,
 }: Props): ReactElement | null => {
   const [expanded, setExpanded] = useState(false)
-  const { expandSidebarNav } = useAppContext()
+  const { expandSidebarNav } = useSidebarConfigContext()
   const { pageLinkBaseUrl, appPages, onPageChange, currentPageScriptHash } =
     useNavigationContext()
 

@@ -47,10 +47,11 @@ import {
   ThemeContext,
   useExecuteWhenChanged,
   useNavigationContext,
+  useSidebarConfigContext,
   useWindowDimensionsContext,
   WidgetStateManager,
 } from "@streamlit/lib"
-import { Logo, Navigation } from "@streamlit/protobuf"
+import { Navigation } from "@streamlit/protobuf"
 
 import ScrollToBottomContainer from "./ScrollToBottomContainer"
 import {
@@ -84,8 +85,6 @@ export interface AppViewProps {
 
   wideMode: boolean
 
-  appLogo: Logo | null
-
   embedded: boolean
 
   showPadding: boolean
@@ -105,7 +104,6 @@ function AppView(props: AppViewProps): ReactElement {
     elements,
     widgetMgr,
     uploadClient,
-    appLogo,
     sendMessageToHost,
     endpoints,
     navigationPosition,
@@ -129,10 +127,12 @@ function AppView(props: AppViewProps): ReactElement {
     return () => window.removeEventListener("hashchange", listener, false)
   }, [sendMessageToHost])
 
-  const { initialSidebarState, widgetsDisabled, showToolbar, hideSidebarNav } =
-    useAppContext()
+  const { widgetsDisabled, showToolbar } = useAppContext()
 
   const { activeTheme } = useContext(ThemeContext)
+
+  const { initialSidebarState, appLogo, hideSidebarNav } =
+    useSidebarConfigContext()
 
   const { appPages, navSections, pageLinkBaseUrl } = useNavigationContext()
 
@@ -283,7 +283,6 @@ function AppView(props: AppViewProps): ReactElement {
           <Profiler id="Sidebar">
             <ThemedSidebar
               endpoints={endpoints}
-              appLogo={appLogo}
               hasElements={hasSidebarElements}
               isCollapsed={isSidebarCollapsed}
               onToggleCollapse={setSidebarCollapsedWithOptionalPersistence}

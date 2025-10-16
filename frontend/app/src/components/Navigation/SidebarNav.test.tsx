@@ -22,7 +22,12 @@ import { userEvent } from "@testing-library/user-event"
 import { AppContextProps } from "@streamlit/app/src/components/AppContext"
 import * as StreamlitContextProviderModule from "@streamlit/app/src/components/StreamlitContextProvider"
 import * as LibModule from "@streamlit/lib"
-import { mockEndpoints, NavigationContextProps, render } from "@streamlit/lib"
+import {
+  mockEndpoints,
+  NavigationContextProps,
+  render,
+  SidebarConfigContextProps,
+} from "@streamlit/lib"
 import { IAppPage, PageConfig } from "@streamlit/protobuf"
 
 import SidebarNav, { Props } from "./SidebarNav"
@@ -144,15 +149,23 @@ const getProps = (props: Partial<Props> = {}): Props => ({
   ...props,
 })
 
-function getAppContextOutput(
-  context: Partial<AppContextProps>
-): AppContextProps {
+function getSidebarConfigContextOutput(
+  context: Partial<SidebarConfigContextProps>
+): SidebarConfigContextProps {
   return {
     initialSidebarState: PageConfig.SidebarState.AUTO,
     appLogo: null,
     sidebarChevronDownshift: 0,
     expandSidebarNav: false,
     hideSidebarNav: false,
+    ...context,
+  }
+}
+
+function getAppContextOutput(
+  context: Partial<AppContextProps>
+): AppContextProps {
+  return {
     widgetsDisabled: false,
     gitInfo: null,
     showToolbar: true,
@@ -176,6 +189,7 @@ function getNavigationContextOutput(
 // Helper to setup context mocks for tests
 function setupContextMocks(options?: {
   appContext?: Partial<AppContextProps>
+  sidebarConfigContext?: Partial<SidebarConfigContextProps>
   navigationContext?: Partial<NavigationContextProps>
 }): void {
   vi.spyOn(StreamlitContextProviderModule, "useAppContext").mockReturnValue(
@@ -184,6 +198,10 @@ function setupContextMocks(options?: {
 
   vi.spyOn(LibModule, "useNavigationContext").mockReturnValue(
     getNavigationContextOutput(options?.navigationContext || {})
+  )
+
+  vi.spyOn(LibModule, "useSidebarConfigContext").mockReturnValue(
+    getSidebarConfigContextOutput(options?.sidebarConfigContext || {})
   )
 }
 
@@ -275,7 +293,7 @@ describe("SidebarNav", () => {
 
   it("does not render View less button when explicitly asked to expand", () => {
     setupContextMocks({
-      appContext: { expandSidebarNav: true },
+      sidebarConfigContext: { expandSidebarNav: true },
       navigationContext: { appPages: generateAppPages(13) },
     })
     render(<SidebarNav {...getProps({ hasSidebarElements: true })} />)

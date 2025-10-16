@@ -27,7 +27,12 @@ import userEvent from "@testing-library/user-event"
 import { AppContextProps } from "@streamlit/app/src/components/AppContext"
 import * as StreamlitContextProviderModule from "@streamlit/app/src/components/StreamlitContextProvider"
 import * as LibModule from "@streamlit/lib"
-import { mockEndpoints, NavigationContextProps, render } from "@streamlit/lib"
+import {
+  mockEndpoints,
+  NavigationContextProps,
+  render,
+  SidebarConfigContextProps,
+} from "@streamlit/lib"
 import { Logo, PageConfig } from "@streamlit/protobuf"
 
 import Sidebar, { SidebarProps } from "./Sidebar"
@@ -46,13 +51,10 @@ const mockEndpointProp = mockEndpoints({
 })
 
 function SidebarWrapper(props: Partial<SidebarProps> = {}): ReactElement {
-  const appContext = StreamlitContextProviderModule.useAppContext()
   return (
     <Sidebar
       endpoints={mockEndpointProp}
       hasElements
-      // Props from AppContext
-      appLogo={appContext.appLogo}
       // Defaulted props for Sidebar itself
       isCollapsed={false}
       onToggleCollapse={vi.fn()}
@@ -70,14 +72,22 @@ function getAppContextOutput(
   context: Partial<AppContextProps> = {}
 ): AppContextProps {
   return {
+    widgetsDisabled: false,
+    gitInfo: null,
+    showToolbar: true,
+    ...context,
+  }
+}
+
+function getSidebarConfigContextOutput(
+  context: Partial<SidebarConfigContextProps> = {}
+): SidebarConfigContextProps {
+  return {
     initialSidebarState: PageConfig.SidebarState.AUTO,
     appLogo: null,
     sidebarChevronDownshift: 0,
     expandSidebarNav: false,
     hideSidebarNav: false,
-    widgetsDisabled: false,
-    gitInfo: null,
-    showToolbar: true,
     ...context,
   }
 }
@@ -99,10 +109,15 @@ function getNavigationContextOutput(
 // Helper function to setup context mocks
 function setupContextMocks(options?: {
   appContext?: Partial<AppContextProps>
+  sidebarConfigContext?: Partial<SidebarConfigContextProps>
   navigationContext?: Partial<NavigationContextProps>
 }): void {
   vi.spyOn(StreamlitContextProviderModule, "useAppContext").mockReturnValue(
     getAppContextOutput(options?.appContext || {})
+  )
+
+  vi.spyOn(LibModule, "useSidebarConfigContext").mockReturnValue(
+    getSidebarConfigContextOutput(options?.sidebarConfigContext || {})
   )
 
   vi.spyOn(LibModule, "useNavigationContext").mockReturnValue(
@@ -164,7 +179,9 @@ describe("Sidebar Component", () => {
     ])(
       "should render $state correctly",
       ({ state, isCollapsed, expectedAria }) => {
-        setupContextMocks({ appContext: { initialSidebarState: state } })
+        setupContextMocks({
+          sidebarConfigContext: { initialSidebarState: state },
+        })
         renderSidebar({ isCollapsed })
 
         expect(screen.getByTestId("stSidebar")).toHaveAttribute(
@@ -244,7 +261,7 @@ describe("Sidebar Component", () => {
 
     it("can hide SidebarNav with the hideSidebarNav option", () => {
       setupContextMocks({
-        appContext: { hideSidebarNav: true },
+        sidebarConfigContext: { hideSidebarNav: true },
         navigationContext: { appPages: SAMPLE_PAGES },
       })
       renderSidebar()
@@ -367,7 +384,7 @@ describe("Sidebar Component", () => {
           expectedUrl: LOGO_IMAGE_URL,
         },
       ])("$description", ({ logo, expectedUrl }) => {
-        setupContextMocks({ appContext: { appLogo: logo } })
+        setupContextMocks({ sidebarConfigContext: { appLogo: logo } })
         const sourceSpy = vi.spyOn(mockEndpointProp, "buildMediaURL")
         renderSidebar({ isCollapsed: true })
 
@@ -378,7 +395,9 @@ describe("Sidebar Component", () => {
     })
 
     it("renders logo's image param when sidebar expanded", () => {
-      setupContextMocks({ appContext: { appLogo: testLogos.fullAppLogo } })
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: testLogos.fullAppLogo },
+      })
       const sourceSpy = vi.spyOn(mockEndpointProp, "buildMediaURL")
       renderSidebar({})
 
@@ -417,7 +436,7 @@ describe("Sidebar Component", () => {
       ])(
         "renders logo - $description",
         ({ logo, expectLink, expectedHeight, expectedHref }) => {
-          setupContextMocks({ appContext: { appLogo: logo } })
+          setupContextMocks({ sidebarConfigContext: { appLogo: logo } })
           renderSidebar()
 
           const sidebar = screen.getByTestId("stSidebar")
@@ -437,7 +456,9 @@ describe("Sidebar Component", () => {
     })
 
     it("sends an CLIENT_ERROR message when the logo source fails to load", () => {
-      setupContextMocks({ appContext: { appLogo: testLogos.fullAppLogo } })
+      setupContextMocks({
+        sidebarConfigContext: { appLogo: testLogos.fullAppLogo },
+      })
       renderSidebar()
 
       const sidebarLogo = within(

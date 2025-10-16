@@ -57,6 +57,8 @@ describe("Form", () => {
       <Form {...getProps()} />,
       // LibContext overrides
       {},
+      // SidebarConfigContext overrides
+      {},
       // ThemeContext overrides
       {},
       // NavigationContext overrides
@@ -78,6 +80,7 @@ describe("Form", () => {
     // Start with script RUNNING, no submit button
     const { rerenderWithContexts } = renderWithContexts(
       <Form {...props} />,
+      {},
       {},
       {},
       {},
@@ -103,6 +106,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
+      undefined,
       {
         scriptRunState: ScriptRunState.NOT_RUNNING,
       }
@@ -112,6 +116,7 @@ describe("Form", () => {
     // If the app restarts, we continue to show the error...
     rerenderWithContexts(
       <Form {...props} />,
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -131,6 +136,7 @@ describe("Form", () => {
     ])
     rerenderWithContexts(
       <Form {...props} />,
+      undefined,
       undefined,
       undefined,
       undefined,

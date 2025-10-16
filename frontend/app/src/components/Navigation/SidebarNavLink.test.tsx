@@ -23,7 +23,6 @@ import { AppContextProps } from "@streamlit/app/src/components/AppContext"
 import * as StreamlitContextProviderModule from "@streamlit/app/src/components/StreamlitContextProvider"
 import * as LibModule from "@streamlit/lib"
 import { NavigationContextProps, render } from "@streamlit/lib"
-import { PageConfig } from "@streamlit/protobuf"
 
 import SidebarNavLink, { SidebarNavLinkProps } from "./SidebarNavLink"
 
@@ -42,11 +41,6 @@ function getAppContextOutput(
   context: Partial<AppContextProps>
 ): AppContextProps {
   return {
-    initialSidebarState: PageConfig.SidebarState.AUTO,
-    appLogo: null,
-    sidebarChevronDownshift: 0,
-    expandSidebarNav: false,
-    hideSidebarNav: false,
     widgetsDisabled: false,
     gitInfo: null,
     showToolbar: true,
