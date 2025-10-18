@@ -38,6 +38,7 @@ import { BlockNode } from "./BlockNode"
 import { ElementNode } from "./ElementNode"
 import { DebugVisitor } from "./visitors/DebugVisitor"
 import { ElementsSetVisitor } from "./visitors/ElementsSetVisitor"
+import { GetNodeByDeltaPathVisitor } from "./visitors/GetNodeByDeltaPathVisitor"
 
 const NO_SCRIPT_RUN_ID = "NO_SCRIPT_RUN_ID"
 
@@ -203,6 +204,27 @@ export class AppRoot {
       logo,
       ...metadata,
     })
+  }
+
+  private getIndexedChild(index: number): AppNode {
+    return this.root.children[index]
+  }
+
+  private runActionOnChild<T extends AppNode>(
+    deltaPath: number[],
+    action: (child: T, deltaPath: number[]) => T | undefined
+  ): T | undefined {
+    if (deltaPath.length === 0) {
+      return undefined
+    }
+
+    return action(this.getIndexedChild(deltaPath[0]) as T, deltaPath.slice(1))
+  }
+
+  private findNodeByDeltaPath(deltaPath: number[]): AppNode | undefined {
+    return this.runActionOnChild(deltaPath, (child, updatedDeltaPath) =>
+      GetNodeByDeltaPathVisitor.getNodeAtPath(child, updatedDeltaPath)
+    )
   }
 
   public applyDelta(
@@ -375,7 +397,7 @@ export class AppRoot {
     fragmentId?: string,
     deltaMsgReceivedAt?: number
   ): AppRoot {
-    const existingNode = this.root.getIn(deltaPath)
+    const existingNode = this.findNodeByDeltaPath(deltaPath)
 
     // If we're replacing an existing Block of the same type, this new Block
     // inherits the existing Block's children. This preserves two things:
@@ -409,8 +431,11 @@ export class AppRoot {
     namedDataSet: ArrowNamedDataSet,
     scriptRunId: string
   ): AppRoot {
-    const existingNode = this.root.getIn(deltaPath) as ElementNode
-    if (isNullOrUndefined(existingNode)) {
+    const existingNode = this.findNodeByDeltaPath(deltaPath)
+    if (
+      isNullOrUndefined(existingNode) ||
+      !(existingNode instanceof ElementNode)
+    ) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`Can't arrowAddRows: invalid deltaPath: ${deltaPath}`)
     }

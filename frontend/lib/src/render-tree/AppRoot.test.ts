@@ -29,6 +29,7 @@ import {
   text,
 } from "./test-utils"
 import { ElementsSetVisitor } from "./visitors/ElementsSetVisitor"
+import { GetNodeByDeltaPathVisitor } from "./visitors/GetNodeByDeltaPathVisitor"
 
 // prettier-ignore
 const BLOCK = block([
@@ -69,7 +70,9 @@ describe("AppRoot.empty", () => {
     const empty = AppRoot.empty(FAKE_SCRIPT_HASH)
 
     expect(empty.main.children.length).toBe(1)
-    const child = empty.main.getIn([0]) as ElementNode
+    const child = GetNodeByDeltaPathVisitor.getNodeAtPath(empty.main, [
+      0,
+    ]) as ElementNode
     expect(child.element.skeleton).not.toBeNull()
 
     expect(empty.sidebar.isEmpty).toBe(true)
@@ -103,7 +106,10 @@ describe("AppRoot.applyDelta", () => {
       forwardMsgMetadata([0, 1, 1])
     )
 
-    const newNode = newRoot.main.getIn([1, 1]) as ElementNode
+    const newNode = GetNodeByDeltaPathVisitor.getNodeAtPath(
+      newRoot.main,
+      [1, 1]
+    ) as ElementNode
     expect(newNode).toBeTextNode("newElement!")
   })
 
@@ -115,7 +121,10 @@ describe("AppRoot.applyDelta", () => {
       forwardMsgMetadata([0, 1, 1])
     )
 
-    const newNode = newRoot.main.getIn([1, 1]) as BlockNode
+    const newNode = GetNodeByDeltaPathVisitor.getNodeAtPath(
+      newRoot.main,
+      [1, 1]
+    ) as BlockNode
     expect(newNode).toBeDefined()
   })
 })
@@ -133,7 +142,9 @@ describe("AppRoot.clearStaleNodes", () => {
     ).clearStaleNodes("new_session_id", [])
 
     // We should now only have a single element, inside a single block
-    expect(newRoot.main.getIn([0, 0])).toBeTextNode("newElement!")
+    expect(
+      GetNodeByDeltaPathVisitor.getNodeAtPath(newRoot.main, [0, 0])
+    ).toBeTextNode("newElement!")
     expect(newRoot.getElements().size).toBe(1)
   })
 
@@ -158,8 +169,17 @@ describe("AppRoot.getElements", () => {
     // We have elements at main.[0] and main.[1, 0]
     expect(ROOT.getElements()).toEqual(
       new Set([
-        (ROOT.main.getIn([0]) as ElementNode).element,
-        (ROOT.main.getIn([1, 0]) as ElementNode).element,
+        (
+          GetNodeByDeltaPathVisitor.getNodeAtPath(ROOT.main, [
+            0,
+          ]) as ElementNode
+        ).element,
+        (
+          GetNodeByDeltaPathVisitor.getNodeAtPath(
+            ROOT.main,
+            [1, 0]
+          ) as ElementNode
+        ).element,
       ])
     )
   })
