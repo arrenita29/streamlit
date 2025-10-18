@@ -16,6 +16,8 @@
 
 import { Element } from "@streamlit/protobuf"
 
+import { AppNodeVisitor } from "./visitors/AppNodeVisitor.interface"
+
 /**
  * An immutable node of the "App Data Tree".
  *
@@ -114,4 +116,15 @@ export interface AppNode {
    * Otherwise, a new Set will be created and will be returned.
    */
   getElements(elementSet?: Set<Element>): Set<Element>
+
+  /**
+   * Accept a visitor.
+   */
+  accept<T>(visitor: AppNodeVisitor<T>): T
+
+  /**
+   * Print a tree-like representation of this node and its children for debugging.
+   * Uses the DebugVisitor internally.
+   */
+  debug(): string
 }

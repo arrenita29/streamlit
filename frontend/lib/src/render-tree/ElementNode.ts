@@ -34,6 +34,8 @@ import { Quiver } from "~lib/dataframes/Quiver"
 import { isNullOrUndefined } from "~lib/util/utils"
 
 import { AppNode } from "./AppNode.interface"
+import { AppNodeVisitor } from "./visitors/AppNodeVisitor.interface"
+import { DebugVisitor } from "./visitors/DebugVisitor"
 
 /**
  * A leaf AppNode. Contains a single element to render.
@@ -240,6 +242,20 @@ export class ElementNode implements AppNode {
           : newDataSetQuiver
       }
     })
+  }
+
+  public accept<T>(visitor: AppNodeVisitor<T>): T {
+    return visitor.visitElementNode(this)
+  }
+
+  /**
+   * Returns a string representation of this ElementNode for debugging purposes.
+   * This method can be used to log or inspect the state of the node.
+   *
+   * @returns {string} A debug string describing this node.
+   */
+  public debug(): string {
+    return this.accept(new DebugVisitor())
   }
 }
 

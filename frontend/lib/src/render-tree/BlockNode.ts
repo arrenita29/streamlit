@@ -19,8 +19,10 @@ import { Block as BlockProto, Element } from "@streamlit/protobuf"
 import { isNullOrUndefined, notUndefined } from "~lib/util/utils"
 
 import { AppNode } from "./AppNode.interface"
+import { AppNodeVisitor } from "./visitors/AppNodeVisitor.interface"
+import { DebugVisitor } from "./visitors/DebugVisitor"
 
-const NO_SCRIPT_RUN_ID = "NO_SCRIPT_RUN_ID"
+export const NO_SCRIPT_RUN_ID = "NO_SCRIPT_RUN_ID"
 
 /**
  * A container AppNode that holds children.
@@ -194,5 +196,19 @@ export class BlockNode implements AppNode {
     }
 
     return elementSet
+  }
+
+  public accept<T>(visitor: AppNodeVisitor<T>): T {
+    return visitor.visitBlockNode(this)
+  }
+
+  /**
+   * Returns a string representation of this BlockNode and its children,
+   * primarily for debugging or logging purposes.
+   *
+   * @returns {string} A debug string describing the structure of this BlockNode.
+   */
+  public debug(): string {
+    return this.accept(new DebugVisitor())
   }
 }
