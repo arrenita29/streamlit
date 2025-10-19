@@ -17,7 +17,10 @@
 import { Block as BlockProto } from "@streamlit/protobuf"
 
 import { AppNode } from "./AppNode.interface"
+import { ElementNode } from "./ElementNode"
+import { TransientNode } from "./TransientNode"
 import { AppNodeVisitor } from "./visitors/AppNodeVisitor.interface"
+import { ClearStaleNodeVisitor } from "./visitors/ClearStaleNodeVisitor"
 import { DebugVisitor } from "./visitors/DebugVisitor"
 
 export const NO_SCRIPT_RUN_ID = "NO_SCRIPT_RUN_ID"
@@ -72,5 +75,35 @@ export class BlockNode implements AppNode {
 
   public accept<T>(visitor: AppNodeVisitor<T>): T {
     return visitor.visitBlockNode(this)
+  }
+
+  public replaceTransientNodeWithSelf(node: TransientNode): AppNode {
+    if (node.scriptRunId !== this.scriptRunId) {
+      // This TransientNode was not defined in this script run, so we return the element node
+      // to replace everything
+      return this
+    }
+
+    // It's essentially an empty transient node, so we return the block node
+    if (!node.anchor && node.transientNodes.length === 0) {
+      return this
+    }
+
+    // At this point, we should clear the transient nodes that are stale
+    const newTransientNodes = node.updateTransientNodes(
+      element =>
+        element.accept(new ClearStaleNodeVisitor(this.scriptRunId)) as
+          | ElementNode
+          | undefined
+    )
+
+    // In this case, we require the transient node to be included, but we are providing
+    // a new anchor node
+    return new TransientNode(
+      this.scriptRunId,
+      this,
+      newTransientNodes,
+      node.deltaMsgReceivedAt
+    )
   }
 }
