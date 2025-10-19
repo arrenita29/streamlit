@@ -37,10 +37,14 @@ export class ClearStaleNodeVisitor
     this.fragmentIdOfBlock = fragmentIdOfBlock
   }
 
+  get isFragmentRun(): boolean {
+    return this.fragmentIdsThisRun.length > 0
+  }
+
   visitBlockNode(node: BlockNode): AppNode | undefined {
     let clearStaleNodeVisitor: ClearStaleNodeVisitor | null = null
 
-    if (!this.fragmentIdsThisRun.length) {
+    if (!this.isFragmentRun) {
       // If we're not currently running a fragment, then we can remove any blocks
       // that don't correspond to currentScriptRunId.
       if (node.scriptRunId !== this.currentScriptRunId) {
@@ -108,7 +112,34 @@ export class ClearStaleNodeVisitor
     return node.scriptRunId === this.currentScriptRunId ? node : undefined
   }
 
-  visitTransientNode(_node: TransientNode): AppNode | undefined {
-    throw new Error("Method not implemented.")
+  visitTransientNode(node: TransientNode): AppNode | undefined {
+    // Check if we're running a fragment, ensure transient node isn't cleared as stale
+    if (this.isFragmentRun) {
+      return node
+    }
+
+    // Check whether the anchor element and transient elements are stale
+    const anchorNode = node.anchor?.accept(this)
+    const transientNodes = node.updateTransientNodes(element => {
+      return element.accept(this) as ElementNode | undefined
+    })
+
+    // Everything is stale
+    if (!anchorNode && transientNodes.length === 0) {
+      return undefined
+    }
+
+    // All the transient elements are stale, but not the anchor element
+    // so we return the anchor element
+    if (transientNodes.length === 0) {
+      return anchorNode
+    }
+
+    return new TransientNode(
+      node.scriptRunId,
+      anchorNode,
+      transientNodes,
+      node.deltaMsgReceivedAt
+    )
   }
 }

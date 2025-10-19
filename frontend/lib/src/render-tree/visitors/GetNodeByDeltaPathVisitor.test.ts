@@ -16,6 +16,7 @@
 
 import { BlockNode } from "~lib/render-tree/BlockNode"
 import { block, text } from "~lib/render-tree/test-utils"
+import { TransientNode } from "~lib/render-tree/TransientNode"
 
 import { GetNodeByDeltaPathVisitor } from "./GetNodeByDeltaPathVisitor"
 
@@ -118,6 +119,56 @@ describe("GetNodeByDeltaPathVisitor", () => {
       const result = visitor.visitBlockNode(emptyBlock)
 
       expect(result).toBeUndefined()
+    })
+  })
+
+  describe("visitTransientNode", () => {
+    it("returns undefined for empty path", () => {
+      const t1 = text("t1")
+      const transient = new TransientNode("run", text("anchor"), [t1], 1)
+      const visitor = new GetNodeByDeltaPathVisitor([])
+
+      const result = visitor.visitTransientNode(transient)
+      expect(result).toBeUndefined()
+    })
+
+    it("returns anchor when index is valid and path ends", () => {
+      const t1 = text("t1")
+      const anchor = text("anchor")
+      const transient = new TransientNode("run", anchor, [t1], 1)
+      const visitor = new GetNodeByDeltaPathVisitor([0])
+
+      const result = visitor.visitTransientNode(transient)
+      expect(result).toBe(anchor)
+    })
+
+    it("returns undefined for invalid index", () => {
+      const transient = new TransientNode(
+        "run",
+        text("anchor"),
+        [text("t1")],
+        1
+      )
+      expect(
+        new GetNodeByDeltaPathVisitor([-1]).visitTransientNode(transient)
+      ).toBeUndefined()
+      expect(
+        new GetNodeByDeltaPathVisitor([5]).visitTransientNode(transient)
+      ).toBeUndefined()
+    })
+
+    it("handles deeper paths by continuing recursion and still returns anchor", () => {
+      const transient = new TransientNode(
+        "run",
+        text("anchor"),
+        [text("t1"), text("t2")],
+        1
+      )
+
+      const result = new GetNodeByDeltaPathVisitor([1, 0]).visitTransientNode(
+        transient
+      )
+      expect(result).toBe(transient.anchor)
     })
   })
 

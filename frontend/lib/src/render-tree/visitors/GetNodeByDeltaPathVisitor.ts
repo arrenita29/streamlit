@@ -68,8 +68,22 @@ export class GetNodeByDeltaPathVisitor
     return node.children[currentIndex].accept(childVisitor)
   }
 
-  visitTransientNode(_node: TransientNode): AppNode | undefined {
-    throw new Error("Method not implemented.")
+  visitTransientNode(node: TransientNode): AppNode | undefined {
+    if (this.deltaPath.length === 0) {
+      return undefined
+    }
+
+    const [currentIndex, ...remainingPath] = this.deltaPath
+
+    if (currentIndex < 0 || currentIndex >= node.transientNodes.length) {
+      return undefined
+    }
+
+    if (remainingPath.length === 0) {
+      return node.anchor
+    }
+
+    return node.accept(new GetNodeByDeltaPathVisitor(remainingPath))
   }
 
   /**
