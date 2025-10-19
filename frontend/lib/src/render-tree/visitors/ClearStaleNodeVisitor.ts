@@ -17,6 +17,7 @@
 import { ElementNode, notUndefined } from "~lib/index"
 import { AppNode } from "~lib/render-tree/AppNode.interface"
 import { BlockNode } from "~lib/render-tree/BlockNode"
+import { TransientNode } from "~lib/render-tree/TransientNode"
 import { AppNodeVisitor } from "~lib/render-tree/visitors/AppNodeVisitor.interface"
 
 export class ClearStaleNodeVisitor
@@ -105,5 +106,9 @@ export class ClearStaleNodeVisitor
       }
     }
     return node.scriptRunId === this.currentScriptRunId ? node : undefined
+  }
+
+  visitTransientNode(_node: TransientNode): AppNode | undefined {
+    throw new Error("Method not implemented.")
   }
 }

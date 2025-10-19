@@ -17,6 +17,7 @@
 import { AppNode } from "~lib/render-tree/AppNode.interface"
 import { BlockNode } from "~lib/render-tree/BlockNode"
 import { ElementNode } from "~lib/render-tree/ElementNode"
+import { TransientNode } from "~lib/render-tree/TransientNode"
 
 import { AppNodeVisitor } from "./AppNodeVisitor.interface"
 
@@ -65,6 +66,10 @@ export class GetNodeByDeltaPathVisitor
     // Recursive case: continue down the path
     const childVisitor = new GetNodeByDeltaPathVisitor(remainingPath)
     return node.children[currentIndex].accept(childVisitor)
+  }
+
+  visitTransientNode(_node: TransientNode): AppNode | undefined {
+    throw new Error("Method not implemented.")
   }
 
   /**

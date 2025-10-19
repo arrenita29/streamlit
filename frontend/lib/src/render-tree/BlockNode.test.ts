@@ -23,6 +23,7 @@ describe("BlockNode.visit", () => {
     const mockVisitor = {
       visitElementNode: vi.fn().mockReturnValue("element-result"),
       visitBlockNode: vi.fn().mockReturnValue("block-result"),
+      visitTransientNode: vi.fn().mockReturnValue("transient-result"),
     }
 
     const result = node.accept(mockVisitor)
@@ -37,6 +38,7 @@ describe("BlockNode.visit", () => {
     const identityVisitor = {
       visitElementNode: vi.fn(),
       visitBlockNode: vi.fn().mockReturnValue(node),
+      visitTransientNode: vi.fn(),
     }
 
     const result = node.accept(identityVisitor)
@@ -49,6 +51,7 @@ describe("BlockNode.visit", () => {
     const nullVisitor = {
       visitElementNode: vi.fn(),
       visitBlockNode: vi.fn().mockReturnValue(undefined),
+      visitTransientNode: vi.fn(),
     }
 
     const result = node.accept(nullVisitor)
@@ -61,6 +64,7 @@ describe("BlockNode.visit", () => {
     const transformVisitor = {
       visitElementNode: vi.fn(),
       visitBlockNode: vi.fn().mockReturnValue(block([text("transformed")])),
+      visitTransientNode: vi.fn(),
     }
 
     const result = originalNode.accept(transformVisitor)
