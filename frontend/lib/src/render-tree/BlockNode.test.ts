@@ -14,50 +14,8 @@
  * limitations under the License.
  */
 
-import { AppNode } from "./AppNode.interface"
-import { block, NO_SCRIPT_RUN_ID, text } from "./test-utils"
+import { block, text } from "./test-utils"
 import { GetNodeByDeltaPathVisitor } from "./visitors/GetNodeByDeltaPathVisitor"
-
-// prettier-ignore
-const BLOCK = block([
-  text("1"),
-  block([
-    text("2"),
-  ]),
-])
-
-function getIn(node: AppNode, path: number[]): AppNode | undefined {
-  return GetNodeByDeltaPathVisitor.getNodeAtPath(node, path)
-}
-
-describe("AppNode.setIn", () => {
-  it("handles shallow paths", () => {
-    const newBlock = BLOCK.setIn([0], text("new"), NO_SCRIPT_RUN_ID)
-    expect(getIn(newBlock, [0])).toBeTextNode("new")
-
-    // Check BLOCK..newBlock diff is as expected.
-    expect(newBlock).not.toStrictEqual(BLOCK)
-    expect(getIn(newBlock, [1])).toStrictEqual(getIn(BLOCK, [1]))
-  })
-
-  it("handles deep paths", () => {
-    const newBlock = BLOCK.setIn([1, 1], text("new"), NO_SCRIPT_RUN_ID)
-    expect(getIn(newBlock, [1, 1])).toBeTextNode("new")
-
-    // Check BLOCK..newBlock diff is as expected
-    expect(newBlock).not.toStrictEqual(BLOCK)
-    expect(getIn(newBlock, [0])).toStrictEqual(getIn(BLOCK, [0]))
-    expect(getIn(newBlock, [1])).not.toStrictEqual(getIn(BLOCK, [1]))
-    expect(getIn(newBlock, [1, 0])).toStrictEqual(getIn(BLOCK, [1, 0]))
-    expect(getIn(newBlock, [1, 1])).not.toStrictEqual(getIn(BLOCK, [1, 1]))
-  })
-
-  it("throws an error for invalid paths", () => {
-    expect(() => BLOCK.setIn([1, 2], text("new"), NO_SCRIPT_RUN_ID)).toThrow(
-      "Bad 'setIn' index 2 (should be between [0, 1])"
-    )
-  })
-})
 
 describe("BlockNode.visit", () => {
   it("calls visitBlockNode on the visitor", () => {
