@@ -25,27 +25,35 @@ import ElementNodeRenderer from "./ElementNodeRenderer"
 
 import { BlockPropsWithoutWidth } from "."
 
-export type OptionalReactElement = ReactElement | null
+export type OptionalReactElements = ReactElement | ReactElement[] | null
 
 export class RenderNodeVisitor
-  implements AppNodeVisitor<OptionalReactElement>
+  implements AppNodeVisitor<OptionalReactElements>
 {
   private readonly props: BlockPropsWithoutWidth
   private readonly disableFullscreenMode: boolean
+  private elementKeyOverride?: string
   private readonly elementKeySet: Set<string>
-  public readonly reactElements: OptionalReactElement[]
+  public readonly reactElements: ReactElement[]
   private index: number
+  private transientElementCount: number
 
-  constructor(props: BlockPropsWithoutWidth, disableFullscreenMode: boolean) {
+  constructor(
+    props: BlockPropsWithoutWidth,
+    disableFullscreenMode: boolean,
+    elementKeyOverride?: string
+  ) {
     this.props = props
     this.disableFullscreenMode = disableFullscreenMode
+    this.elementKeyOverride = elementKeyOverride
     this.elementKeySet = new Set<string>()
-    this.reactElements = [] as OptionalReactElement[]
+    this.reactElements = []
     // Initialize index to 0 as we will use it as a key in the React component
     this.index = 0
+    this.transientElementCount = 0
   }
 
-  visitBlockNode(node: BlockNode): OptionalReactElement {
+  visitBlockNode(node: BlockNode): OptionalReactElements {
     // Put node in childProps instead of passing as a node={node} prop in React to
     // guarantee it doesn't get overwritten by {...childProps}.
     const childProps = {
@@ -54,7 +62,7 @@ export class RenderNodeVisitor
       node,
     }
 
-    const key = this.index.toString()
+    const key = this.elementKeyOverride || this.index.toString()
     this.index += 1
 
     const renderer = <BlockNodeRenderer key={key} {...childProps} />
@@ -63,12 +71,44 @@ export class RenderNodeVisitor
     return renderer
   }
 
-  visitTransientNode(_node: TransientNode): OptionalReactElement {
-    // Transient nodes are rendered outside of the context this visitor is used in
-    return null
+  visitTransientNode(node: TransientNode): OptionalReactElements {
+    const transientReactElements: OptionalReactElements = []
+    node.transientNodes.forEach(element => {
+      const keyOverride =
+        this.elementKeyOverride || `transient-${this.transientElementCount}`
+
+      this.transientElementCount += 1
+      const transientReactElement = element.accept(
+        new RenderNodeVisitor(
+          this.props,
+          this.disableFullscreenMode,
+          keyOverride
+        )
+      )
+      if (transientReactElement) {
+        if (Array.isArray(transientReactElement)) {
+          transientReactElements.push(...transientReactElement)
+        } else {
+          transientReactElements.push(transientReactElement)
+        }
+      }
+    })
+
+    this.reactElements.push(...transientReactElements)
+
+    const anchorReactElement = node.anchor?.accept(this)
+    if (anchorReactElement) {
+      if (Array.isArray(anchorReactElement)) {
+        transientReactElements.push(...anchorReactElement)
+      } else {
+        transientReactElements.push(anchorReactElement)
+      }
+    }
+
+    return transientReactElements
   }
 
-  visitElementNode(node: ElementNode): OptionalReactElement {
+  visitElementNode(node: ElementNode): OptionalReactElements {
     // Put node in childProps instead of passing as a node={node} prop in React to
     // guarantee it doesn't get overwritten by {...childProps}.
     const childProps = {
@@ -77,7 +117,10 @@ export class RenderNodeVisitor
       node,
     }
 
-    const key = getElementId(node.element) || this.index.toString()
+    const key =
+      this.elementKeyOverride ||
+      getElementId(node.element) ||
+      this.index.toString()
     this.index += 1
     // Avoid rendering the same element twice. We assume the first one is the one we want
     // because the page is rendered top to bottom, so a valid widget would be rendered
@@ -99,7 +142,7 @@ export class RenderNodeVisitor
   static collectReactElements(
     props: BlockPropsWithoutWidth,
     disableFullscreenMode: boolean
-  ): OptionalReactElement[] {
+  ): ReactElement[] {
     if (!props.node.children) {
       return []
     }
