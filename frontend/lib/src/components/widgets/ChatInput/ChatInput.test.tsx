@@ -69,7 +69,7 @@ const getProps = (
         })
       )
     }),
-    deleteFile: vi.fn(),
+    deleteFile: vi.fn().mockResolvedValue(undefined),
   },
   ...widgetProps,
 })
