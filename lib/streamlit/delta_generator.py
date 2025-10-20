@@ -108,9 +108,10 @@ if TYPE_CHECKING:
 
     from google.protobuf.message import Message
 
-    from streamlit.cursor import Cursor
+    from streamlit.cursor import Cursor, LockedCursor
     from streamlit.elements.lib.built_in_chart_utils import AddRowsMetadata
     from streamlit.elements.lib.layout_utils import LayoutConfig
+    from streamlit.proto.Element_pb2 import Element as ElementProto
 
 MAX_DELTA_BYTES: Final[int] = 14 * 1024 * 1024  # 14MB
 
@@ -598,6 +599,41 @@ class DeltaGenerator(
         )
 
         return block_dg
+
+    def _transient(
+        self,
+        dg_cursor: LockedCursor,
+        element_proto: ElementProto,
+        layout_config: LayoutConfig | None = None,
+        add_transient_id: str | None = None,
+        clear_transient_id: str | None = None,
+    ) -> ForwardMsg_pb2.ForwardMsg:
+        msg = ForwardMsg_pb2.ForwardMsg()
+        msg.metadata.delta_path[:] = dg_cursor.delta_path
+        msg.metadata.cacheable = False
+
+        if layout_config:
+            if layout_config.height is not None:
+                element_proto.height_config.CopyFrom(
+                    get_height_config(layout_config.height)
+                )
+            if layout_config.width is not None:
+                element_proto.width_config.CopyFrom(
+                    get_width_config(layout_config.width)
+                )
+
+        if clear_transient_id is not None:
+            dg_cursor.remove_transient_element(clear_transient_id)
+        if add_transient_id is not None:
+            dg_cursor.add_transient_element(add_transient_id, element_proto)
+
+        # Make sure the transient message is set as it will
+        # not be set if there are no transient elements
+        msg.delta.new_transient.SetInParent()
+        for e in dg_cursor.transient_elements:
+            msg.delta.new_transient.elements.add().CopyFrom(e)
+
+        return msg
 
 
 def _writes_directly_to_sidebar(dg: DeltaGenerator) -> bool:

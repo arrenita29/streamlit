@@ -19,7 +19,7 @@ import { MockInstance } from "vitest"
 import { Delta as DeltaProto, Logo as LogoProto } from "@streamlit/protobuf"
 
 import { AppRoot } from "./AppRoot"
-import { BlockNode } from "./BlockNode"
+import { BlockNode, NO_SCRIPT_RUN_ID } from "./BlockNode"
 import { ElementNode } from "./ElementNode"
 import {
   block,
@@ -28,6 +28,7 @@ import {
   makeProto,
   text,
 } from "./test-utils"
+import { TransientNode } from "./TransientNode"
 import { ElementsSetVisitor } from "./visitors/ElementsSetVisitor"
 import { GetNodeByDeltaPathVisitor } from "./visitors/GetNodeByDeltaPathVisitor"
 
@@ -92,6 +93,128 @@ describe("AppRoot.empty", () => {
     expect(empty.event.activeScriptHash).toBe(FAKE_SCRIPT_HASH)
     expect(empty.bottom.activeScriptHash).toBe(FAKE_SCRIPT_HASH)
     expect(empty.root.activeScriptHash).toBe(FAKE_SCRIPT_HASH)
+  })
+})
+
+describe("AppRoot.applyDelta - newTransient", () => {
+  it("creates a TransientNode with transient ElementNodes", () => {
+    const delta = makeProto(DeltaProto, {
+      newTransient: {
+        elements: [{ text: { body: "t1" } }, { text: { body: "t2" } }],
+      },
+    })
+
+    const scriptRunId = "run_transient"
+    const activeScriptHash = "active_hash"
+    const newRoot = ROOT.applyDelta(
+      scriptRunId,
+      delta,
+      // Place transient at main.[1]
+      forwardMsgMetadata([0, 1], activeScriptHash)
+    )
+
+    const nodeAtIndex = newRoot.main.children[1] as TransientNode
+    expect(nodeAtIndex).toBeInstanceOf(TransientNode)
+    expect(nodeAtIndex.scriptRunId).toBe(scriptRunId)
+    expect(nodeAtIndex.transientNodes.length).toBe(2)
+    expect(nodeAtIndex.transientNodes[0].element.text?.body).toBe("t1")
+    expect(nodeAtIndex.transientNodes[1].element.text?.body).toBe("t2")
+    // Ensure metadata propagation to child element nodes
+    expect(nodeAtIndex.transientNodes[0].activeScriptHash).toBe(
+      activeScriptHash
+    )
+  })
+})
+
+describe("AppRoot.applyDelta - arrowAddRows error fallback", () => {
+  it("replaces target with an error Element when deltaPath is invalid for addRows", () => {
+    // Choose a valid existing path that points to a BlockNode (not an ElementNode)
+    const delta = makeProto(DeltaProto, {
+      arrowAddRows: {} as unknown as never,
+    })
+
+    const newRoot = ROOT.applyDelta(
+      "run_add_rows",
+      delta,
+      forwardMsgMetadata([0, 1])
+    )
+
+    const replaced = newRoot.main.children[1] as ElementNode
+    expect(replaced).toBeInstanceOf(ElementNode)
+    // Fallback path constructs an error element
+    expect(replaced.element.alert?.format).toBeDefined()
+  })
+})
+
+describe("AppRoot.addBlock child inheritance", () => {
+  it("preserves children when replacing a BlockNode with the same type", () => {
+    // Sanity: main.[1] is a BlockNode with one child (text "2") in ROOT
+    const before = GetNodeByDeltaPathVisitor.getNodeAtPath(ROOT.main, [1, 0])
+    expect(before).toBeTextNode("2")
+
+    // Apply another addBlock at the same path; type matches default BlockProto
+    const delta = makeProto(DeltaProto, { addBlock: {} })
+    const updated = ROOT.applyDelta(
+      "run_replace_block",
+      delta,
+      forwardMsgMetadata([0, 1])
+    )
+
+    // Children should be preserved
+    const child = GetNodeByDeltaPathVisitor.getNodeAtPath(updated.main, [1, 0])
+    expect(child).toBeTextNode("2")
+  })
+})
+
+describe("AppRoot.filterMainScriptElements", () => {
+  it("filters out nodes not matching the provided mainScriptHash and preserves structure", () => {
+    // Start from ROOT which is built with FAKE_SCRIPT_HASH
+    // Add an element under sidebar with a different activeScriptHash
+    const withSidebarElement = ROOT.applyDelta(
+      "run_sidebar",
+      makeProto(DeltaProto, { newElement: { text: { body: "side" } } }),
+      forwardMsgMetadata([1, 0], "other_hash")
+    )
+
+    // Filter to a new mainScriptHash (no blocks currently match it)
+    const filtered = withSidebarElement.filterMainScriptElements("new_hash")
+
+    // Top-level structure should remain with empty BlockNodes
+    expect(filtered.main).toBeInstanceOf(BlockNode)
+    expect(filtered.sidebar).toBeInstanceOf(BlockNode)
+    expect(filtered.event).toBeInstanceOf(BlockNode)
+    expect(filtered.bottom).toBeInstanceOf(BlockNode)
+    expect(filtered.main.children.length).toBe(0)
+    expect(filtered.sidebar.children.length).toBe(0)
+  })
+
+  it("preserves logo only when activeScriptHash matches", () => {
+    const logo = LogoProto.create({ image: "http://example/logo.png" })
+    const withLogo = ROOT.appRootWithLogo(logo, {
+      activeScriptHash: "match",
+      scriptRunId: NO_SCRIPT_RUN_ID,
+    })
+
+    // Filtering with same hash keeps logo
+    const kept = withLogo.filterMainScriptElements("match")
+    expect(kept.logo).toEqual(logo)
+
+    // Filtering with different hash drops logo
+    const dropped = withLogo.filterMainScriptElements("different")
+    expect(dropped.logo).toBeNull()
+  })
+})
+
+describe("AppRoot.clearStaleNodes - fragment run", () => {
+  it("preserves logo if fragmentIdsThisRun is non-empty", () => {
+    const logo = LogoProto.create({ image: "http://example/logo.png" })
+    const withLogo = ROOT.appRootWithLogo(logo, {
+      activeScriptHash: FAKE_SCRIPT_HASH,
+      scriptRunId: "some_run",
+    })
+
+    const cleared = withLogo.clearStaleNodes("different_run", ["frag1"]) // fragment run
+    expect(cleared.logo).toEqual(logo)
   })
 })
 
