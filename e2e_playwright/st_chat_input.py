@@ -130,3 +130,20 @@ else:
         file_type=["txt"],
     )
     st.write("Initial chat input value:", dyn_val)
+
+v11 = st.container().chat_input(
+    "Chat input 11 (audio recording)",
+    accept_file="multiple",
+    accept_audio=True,
+    key="chat_input_11",
+)
+st.write("Chat input 11 (audio recording) - value:", v11)
+if v11:
+    st.write("  - text:", v11.text)
+    st.write("  - audio:", v11.audio)
+    st.write("  - files:", v11.files)
+    if v11.audio:
+        st.audio(v11.audio)
+    if v11.files:
+        for file in v11.files:
+            st.write(f"  - file: {file.name}")

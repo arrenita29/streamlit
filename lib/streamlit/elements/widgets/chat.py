@@ -419,6 +419,7 @@ class ChatMixin:
         max_chars: int | None = None,
         accept_file: Literal[False] = False,
         file_type: str | Sequence[str] | None = None,
+        accept_audio: bool = False,
         disabled: bool = False,
         on_submit: WidgetCallback | None = None,
         args: WidgetArgs | None = None,
@@ -435,6 +436,7 @@ class ChatMixin:
         max_chars: int | None = None,
         accept_file: Literal[True, "multiple", "directory"],
         file_type: str | Sequence[str] | None = None,
+        accept_audio: bool = False,
         disabled: bool = False,
         on_submit: WidgetCallback | None = None,
         args: WidgetArgs | None = None,
@@ -451,6 +453,7 @@ class ChatMixin:
         max_chars: int | None = None,
         accept_file: bool | Literal["multiple", "directory"] = False,
         file_type: str | Sequence[str] | None = None,
+        accept_audio: bool = False,
         disabled: bool = False,
         on_submit: WidgetCallback | None = None,
         args: WidgetArgs | None = None,
@@ -512,6 +515,13 @@ class ChatMixin:
                 security guarantee against users uploading files of other types
                 or type extensions. The correct handling of uploaded files is
                 part of the app developer's responsibility.
+
+        accept_audio : bool
+            Whether to show an audio recording button in the chat input.
+            When enabled, users can record and submit audio messages. This
+            requires ``accept_file`` to be enabled (set to ``True``,
+            ``"multiple"``, or ``"directory"``). Recorded audio is uploaded
+            as a WAV file. This defaults to ``False``.
 
         disabled : bool
             Whether the chat input should be disabled. This defaults to
@@ -645,10 +655,39 @@ class ChatMixin:
         .. output ::
             https://doc-chat-input-session-state.streamlit.app/
             height: 350px
+
+        **Example 5: Enable audio recording**
+
+        You can enable audio recording by setting ``accept_audio=True``. This
+        requires ``accept_file`` to be enabled.
+
+        >>> import streamlit as st
+        >>>
+        >>> prompt = st.chat_input(
+        >>>     "Say or record something",
+        >>>     accept_file="multiple",
+        >>>     accept_audio=True,
+        >>> )
+        >>> if prompt:
+        >>>     if prompt.text:
+        >>>         st.write("Text:", prompt.text)
+        >>>     if prompt.files:
+        >>>         for file in prompt.files:
+        >>>             if file.name.endswith(".wav"):
+        >>>                 st.audio(file)
+        >>>             else:
+        >>>                 st.write("File:", file.name)
         """
+        # Validate inputs first (fail-fast principle)
         if accept_file not in {True, False, "multiple", "directory"}:
             raise StreamlitAPIException(
                 "The `accept_file` parameter must be a boolean or 'multiple' or 'directory'."
+            )
+
+        if accept_audio and not accept_file:
+            raise StreamlitAPIException(
+                "The `accept_audio` parameter requires `accept_file` to be enabled. "
+                "Please set `accept_file=True`, `accept_file='multiple'`, or `accept_file='directory'`."
             )
 
         key = to_key(key)
@@ -678,6 +717,7 @@ class ChatMixin:
             max_chars=max_chars,
             accept_file=accept_file,
             file_type=file_type,
+            accept_audio=accept_audio,
             width=width,
         )
 
@@ -722,6 +762,7 @@ class ChatMixin:
 
         chat_input_proto.file_type[:] = file_type if file_type is not None else []
         chat_input_proto.max_upload_size_mb = config.get_option("server.maxUploadSize")
+        chat_input_proto.accept_audio = accept_audio
 
         serde = ChatInputSerde(
             accept_files=accept_file in {True, "multiple", "directory"},
