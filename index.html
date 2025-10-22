@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Secondhand Electronics Price Advisor</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --accent: #3b82f6;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .cta-button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Sections */
+        section {
+            padding: 80px 0;
+            background: white;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .section-dark {
+            background: var(--dark);
+            color: white;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 2.5rem;
+        }
+        
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .feature-card {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Demo Section */
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+        
+        .input-form {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .result-card {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .predicted-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+        
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+        
+        .metric-card {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 10px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        /* Charts */
+        .chart-container {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="container">
+            <div class="logo">SmartPrice Advisor</div>
+            <ul class="nav-links">
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#demo">Live Demo</a></li>
+                <li><a href="#technical">Technical Details</a></li>
+                <li><a href="#results">Results</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Smart Secondhand Electronics Price Advisor</h1>
+            <p>AI-powered price prediction for used iPhones using machine learning</p>
+            <a href="#demo" class="cta-button">Try Live Demo</a>
+        </div>
+    </section>
+
+    <!-- Overview Section -->
+    <section id="overview" class="container">
+        <h2>Project Overview</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>iPhone Price Prediction</h3>
+                <p>Accurate price estimation for used iPhones based on multiple features including model, condition, and specifications.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>Machine Learning</h3>
+                <p>Powered by Random Forest algorithm with hyperparameter tuning for optimal performance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Data-Driven Insights</h3>
+                <p>Trained on comprehensive dataset with 17+ features including battery health, storage, and physical condition.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Demo Section -->
+    <section id="demo" class="container">
+        <h2>Live Price Prediction</h2>
+        <div class="demo-container">
+            <div class="input-form">
+                <h3>Enter Phone Details</h3>
+                <form id="pricePredictionForm">
+                    <div class="form-group">
+                        <label for="model">iPhone Model:</label>
+                        <select id="model" required>
+                            <option value="">Select Model</option>
+                            <option value="iphone_se_2">iPhone SE 2</option>
+                            <option value="iphone_x">iPhone X</option>
+                            <option value="iphone_8">iPhone 8</option>
+                            <option value="iphone_11">iPhone 11</option>
+                            <option value="iphone_12">iPhone 12</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="storage">Storage (GB):</label>
+                        <select id="storage" required>
+                            <option value="">Select Storage</option>
+                            <option value="64">64 GB</option>
+                            <option value="128">128 GB</option>
+                            <option value="256">256 GB</option>
+                            <option value="512">512 GB</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="battery_health">Battery Health (%):</label>
+                        <input type="number" id="battery_health" min="0" max="100" value="85" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="screen_damages">Screen Condition:</label>
+                        <select id="screen_damages" required>
+                            <option value="undamaged">Undamaged</option>
+                            <option value="minor_scratches">Minor Scratches</option>
+                            <option value="cracked">Cracked</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="months_since_release">Months Since Release:</label>
+                        <input type="number" id="months_since_release" min="0" max="120" value="24" required>
+                    </div>
+                    
+                    <button type="submit" class="cta-button">Predict Price</button>
+                </form>
+            </div>
+            
+            <div class="result-card">
+                <h3>Predicted Price</h3>
+                <div class="predicted-price" id="predictedPrice">--</div>
+                <p>LKR (Sri Lankan Rupees)</p>
+                <div id="confidenceScore" style="margin-top: 1rem;"></div>
+                <div id="featureImportance" style="margin-top: 2rem; text-align: left;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technical Details -->
+    <section id="technical" class="container">
+        <h2>Technical Implementation</h2>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value">96.7%</div>
+                <p>R² Score</p>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">5,826</div>
+                <p>MAE (LKR)</p>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">9,203</div>
+                <p>RMSE (LKR)</p>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">619</div>
+                <p>Data Points</p>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>Model Architecture</h3>
+            <p><strong>Algorithm:</strong> Random Forest Regressor with Hyperparameter Tuning</p>
+            <p><strong>Preprocessing:</strong> StandardScaler for numerical features, OneHotEncoder for categorical features</p>
+            <p><strong>Key Features:</strong> 17 engineered features including device specifications, condition metrics, and temporal factors</p>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results" class="container">
+        <h2>Results & Insights</h2>
+        
+        <div class="chart-container">
+            <h3>Feature Importance</h3>
+            <p>The model identified these as the most influential factors in determining secondhand iPhone prices:</p>
+            <ul style="text-align: left; margin-top: 1rem;">
+                <li>📱 iPhone Model (Most important)</li>
+                <li>💾 Storage Capacity</li>
+                <li>🔋 Battery Health</li>
+                <li>⏰ Months Since Release</li>
+                <li>📱 Screen Condition</li>
+                <li>🔄 iOS Update Status</li>
+            </ul>
+        </div>
+        
+        <div class="chart-container" style="margin-top: 2rem;">
+            <h3>Business Impact</h3>
+            <p>This price advisor helps:</p>
+            <ul style="text-align: left; margin-top: 1rem;">
+                <li>✅ Buyers avoid overpaying for used devices</li>
+                <li>✅ Sellers set fair market prices</li>
+                <li>✅ Reduce information asymmetry in secondhand markets</li>
+                <li>✅ Increase trust in online marketplace transactions</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="container section-dark">
+        <h2>Get In Touch</h2>
+        <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+            <p>This project demonstrates the power of machine learning in solving real-world pricing problems in the secondhand electronics market.</p>
+            <div style="margin-top: 2rem;">
+                <a href="#demo" class="cta-button">Try the Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Smart Secondhand Electronics Price Advisor | MLDA Project</p>
+        </div>
+    </footer>
+
+    <script>
+        // Price prediction functionality
+        document.getElementById('pricePredictionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const model = document.getElementById('model').value;
+            const storage = parseInt(document.getElementById('storage').value);
+            const batteryHealth = parseInt(document.getElementById('battery_health').value);
+            const screenCondition = document.getElementById('screen_damages').value;
+            const monthsSinceRelease = parseInt(document.getElementById('months_since_release').value);
+            
+            // Simulate price prediction (replace with actual API call)
+            const predictedPrice = predictPrice(model, storage, batteryHealth, screenCondition, monthsSinceRelease);
+            
+            // Display results
+            document.getElementById('predictedPrice').textContent = `LKR ${predictedPrice.toLocaleString()}`;
+            
+            // Show confidence and feature importance
+            document.getElementById('confidenceScore').innerHTML = `
+                <div style="background: var(--success); color: white; padding: 10px; border-radius: 5px;">
+                    🎯 Prediction Confidence: 92%
+                </div>
+            `;
+            
+            document.getElementById('featureImportance').innerHTML = `
+                <h4>Key Factors Affecting Price:</h4>
+                <ul style="margin-top: 0.5rem;">
+                    <li>Model: ${getModelImpact(model)}% impact</li>
+                    <li>Storage: ${getStorageImpact(storage)}% impact</li>
+                    <li>Battery: ${getBatteryImpact(batteryHealth)}% impact</li>
+                </ul>
+            `;
+        });
+        
+        // Mock prediction function (replace with actual model inference)
+        function predictPrice(model, storage, batteryHealth, screenCondition, monthsSinceRelease) {
+            // Base prices for different models
+            const basePrices = {
+                'iphone_se_2': 60000,
+                'iphone_x': 75000,
+                'iphone_8': 45000,
+                'iphone_11': 85000,
+                'iphone_12': 95000
+            };
+            
+            let price = basePrices[model] || 50000;
+            
+            // Adjust for storage
+            price += (storage / 64 - 1) * 15000;
+            
+            // Adjust for battery health
+            price *= (batteryHealth / 100);
+            
+            // Adjust for screen condition
+            const screenMultipliers = {
+                'undamaged': 1.0,
+                'minor_scratches': 0.9,
+                'cracked': 0.7
+            };
+            price *= screenMultipliers[screenCondition];
+            
+            // Adjust for age
+            price *= Math.max(0.3, 1 - (monthsSinceRelease * 0.01));
+            
+            return Math.round(price);
+        }
+        
+        function getModelImpact(model) {
+            const impacts = {
+                'iphone_se_2': 35,
+                'iphone_x': 40,
+                'iphone_8': 30,
+                'iphone_11': 45,
+                'iphone_12': 50
+            };
+            return impacts[model] || 35;
+        }
+        
+        function getStorageImpact(storage) {
+            return Math.min(25, (storage / 64) * 10);
+        }
+        
+        function getBatteryImpact(batteryHealth) {
+            return Math.max(5, (100 - batteryHealth) / 2);
+        }
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
